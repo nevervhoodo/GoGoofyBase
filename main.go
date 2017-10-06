@@ -1,11 +1,12 @@
+// 2017
+//First database realisation stage
+
 package main
 
 import (
 	"fmt"
-    //"regexp"
 	"net/http"
 	"encoding/json"
-	//"github.com/gorilla/mux"
 	"github.com/julienschmidt/httprouter"
 	"strconv"
 	"io/ioutil"
@@ -14,32 +15,38 @@ import (
 	"bufio"
 	"log"
 )
-// this is a comment
 
+//One base record struct
+type Field struct {
+	ID int `json:"Id"` //id for enumeration of records
+	Key string `json:"Key"` //key field for database
+	Value string `json:"value"` //value
+}
+
+//Array of records
+type Table []Field
+
+//Record struct used for adding new key-value pair
+type gotField struct {
+	Key string `json:"Key"`
+	Value string `json:"value"`
+}
+
+//pathfor current database
 const dbpath string = "/tmp/dat"
+
+//format for input/output of records
 const format string = "%d: %s = %s"
 
+//additional function to catch error
 func check(e error) {
 	if e != nil {
 		panic(e)
 	}
 }
 
-type Field struct {
-	ID int `json:"Id"`
-	Key string `json:"Key"`
-	Value string `json:"value"`
-}
-
-type gotField struct {
-	Key string `json:"Key"`
-	Value string `json:"value"`
-}
-
-type Table []Field
-
+//Table initialization realisation and declaration
 func initTable()(Table){
-
 	strs, err := File2lines(dbpath)
 	if err != nil{
 		fmt.Print("db error")
@@ -75,8 +82,10 @@ func initTable()(Table){
 	}
 	return table
 }
+var mytable Table = initTable()
 
-func searchById(table Table, id int)(Field, bool){
+//Find record in table by its id
+func (table Table) searchById(id int)(Field, bool){
 
 	if len(table) == 0 {
 		return Field{0,"",""}, false
@@ -90,7 +99,8 @@ func searchById(table Table, id int)(Field, bool){
 	return Field{0,"",""}, false
 }
 
-func searchByKey(table Table, key string)(Field, bool){
+//Find record in table by its Key name
+func (table Table) searchByKey(key string)(Field, bool){
 	if len(table) == 0 {
 		return Field{0,"",""}, false
 	}
@@ -103,8 +113,7 @@ func searchByKey(table Table, key string)(Field, bool){
 	return Field{0,"",""}, false
 }
 
-var mytable Table = initTable()
-
+//Return full table as json response
 func returnTable(w http.ResponseWriter, r *http.Request, _ httprouter.Params){
 
 	fmt.Println("Endpoint Hit: returnTable")
@@ -133,6 +142,7 @@ func returnTable(w http.ResponseWriter, r *http.Request, _ httprouter.Params){
 
 }
 
+//Special function to get id GET parametr
 func getID(w http.ResponseWriter, ps httprouter.Params) (int, bool) {
 	id, err := strconv.Atoi(ps.ByName("id"))
 	if err != nil {
@@ -142,17 +152,19 @@ func getID(w http.ResponseWriter, ps httprouter.Params) (int, bool) {
 	return id, true
 }
 
+//Special function to get key GET parametr
 func getKey(w http.ResponseWriter, ps httprouter.Params) (string, bool){
 	return ps.ByName("id"), true
 }
 
+//Return one record by id or key as json response
 func returnSingleRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	id, ok := getID(w, ps)
 	fmt.Print("val",id,ok)
 	if !ok {
-		rec, boolres := searchByKey(mytable, ps.ByName("id"))
+		rec, boolres := mytable.searchByKey(ps.ByName("id"))
 		fmt.Println(rec,boolres)
 		if !boolres {
 			json.NewEncoder(w).Encode("No record ith that key")
@@ -160,7 +172,7 @@ func returnSingleRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 			json.NewEncoder(w).Encode(rec)
 		}
 	} else {
-		rec, boolres := searchById(mytable, id)
+		rec, boolres := mytable.searchById(id)
 		fmt.Println(rec,boolres)
 		if !boolres {
 			json.NewEncoder(w).Encode("No value with that id")
@@ -169,11 +181,10 @@ func returnSingleRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 			json.NewEncoder(w).Encode(rec)
 		}
 	}
-
-
-
 }
 
+
+//Add ne record to table
 func addRecord(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	decoder := json.NewDecoder(r.Body)
 	var t gotField
@@ -186,9 +197,9 @@ func addRecord(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	var ok bool
-	_, ok = searchByKey(mytable,t.Key)
+	_, ok = mytable.searchByKey(t.Key)
 	if ok {
-		json.NewEncoder(w).Encode("Record ith that key exists")
+		json.NewEncoder(w).Encode("Record with that key exists")
 	} else {
 		num := len(mytable)
 		fstr := fmt.Sprintf(format+"\n", num, t.Key, t.Value)
@@ -200,13 +211,14 @@ func addRecord(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 
 
+//return HimePage
 func homePage(w http.ResponseWriter, r *http.Request, _ httprouter.Params){
 	fmt.Fprintf(w, "Welcome to the HomePage!")
 	//http.HandleFunc("/", )
 	fmt.Println("Endpoint Hit: homePage")
 }
 
-
+//User reuests handlers
 func handleRequests() {
 
 	router := httprouter.New()
@@ -220,6 +232,7 @@ func handleRequests() {
 
 }
 
+//Special subfunc to represent file as an array of strings
 func LinesFromReader(r io.Reader) ([]string, error) {
 	var lines []string
 	scanner := bufio.NewScanner(r)
@@ -233,6 +246,8 @@ func LinesFromReader(r io.Reader) ([]string, error) {
 	return lines, nil
 }
 
+
+//Special function to read file and return array of strings
 func File2lines(filePath string) ([]string, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
@@ -242,6 +257,7 @@ func File2lines(filePath string) ([]string, error) {
 	return LinesFromReader(f)
 }
 
+//Insert string to file in special place
 func InsertStringToFile(path, str string, index int) error {
 	lines, err := File2lines(path)
 	if err != nil {
@@ -267,14 +283,6 @@ func InsertStringToFile(path, str string, index int) error {
 
 func main() {
 	fmt.Println("Hello my dummy users")
-	//err := InsertStringToFile("/tmp/dat", "hello world!\n", 2)
-	//if err != nil {
-	//	fmt.Println("Database died")
-	//}
-
-
-
-	//table := initTable()
 	handleRequests()
 
 }
