@@ -5,17 +5,33 @@ import (
 	"io/ioutil"
 )
 
+//One base record struct
+type Field struct {
+	ID int `json:"Id"` //id for enumeration of records
+	Key string `json:"Key"` //key field for database
+	Value string `json:"value"` //value
+}
+
+//Array of records
+type Table []Field
+
+//Record struct used for adding new key-value pair
+type gotField struct {
+	Key string `json:"Key"`
+	Value string `json:"value"`
+}
+
 //Table initialization realisation and declaration
 func initTable()(Table){
-	strs, err := File2lines(dbpath)
+	strs, err := File2lines(config_dbpath)
 	if err != nil{
 		fmt.Print("db error ")
 		table := Table{
 			Field{ID: 0, Key: "test", Value: "testme"},
 		}
 		var str string
-		str = fmt.Sprintf(format+"\n",0,"test","testme")
-		ioutil.WriteFile(dbpath, []byte(str), 0644)
+		str = fmt.Sprintf(config_format+"\n",0,"test","testme")
+		ioutil.WriteFile(config_dbpath, []byte(str), 0644)
 		return table
 	}
 	if len(strs) == 0{
@@ -23,8 +39,8 @@ func initTable()(Table){
 			Field{ID: 0, Key: "test", Value: "testme"},
 		}
 		var str string
-		str = fmt.Sprintf(format+"\n",0,"test","testme")
-		ioutil.WriteFile(dbpath, []byte(str), 0644)
+		str = fmt.Sprintf(config_format+"\n",0,"test","testme")
+		ioutil.WriteFile(config_dbpath, []byte(str), 0644)
 		return table
 	}
 	var i,id int
@@ -32,7 +48,7 @@ func initTable()(Table){
 	var table Table
 	for i=0; i<len(strs); i++{
 		//var validID = regexp.MustCompile(`"^([a-z]+): (['a'-'z'],['A'-'Z']+)=(['a'-'z'],['A'-'Z']+)$"`)
-		n, err := fmt.Sscanf(strs[i], format, &id, &key, &val)
+		n, err := fmt.Sscanf(strs[i], config_format, &id, &key, &val)
 		fmt.Println(strs[i])
 		//fmt.Println(validID.MatchString(strs[i]))
 		if n < 3 || err!= nil{
@@ -43,4 +59,34 @@ func initTable()(Table){
 	return table
 }
 var mytable Table = initTable()
+
+//Find record in table by its id
+func (table Table) searchById(id int)(Field, bool){
+
+	if len(table) == 0 {
+		return Field{0,"",""}, false
+	}
+	var i int
+	for i = 0; i<len(table); i++{
+		if table[i].ID == id{
+			return table[i], true
+		}
+	}
+	return Field{0,"",""}, false
+}
+
+//Find record in table by its Key name
+func (table Table) searchByKey(key string)(Field, bool){
+	if len(table) == 0 {
+		return Field{0,"",""}, false
+	}
+	var i int
+	for i = 0; i<len(table); i++{
+		if table[i].Key == key{
+			return table[i], true
+		}
+	}
+	return Field{0,"",""}, false
+}
+
 

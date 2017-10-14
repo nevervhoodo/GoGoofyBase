@@ -44,5 +44,5 @@ Value 		| string 	| value for selected key
 - [ ] make distributed database
 - [ ] secure input validation and filtration
 - [ ] add OOP-like structure 
-- [ ] divide into several package files
+- [x] divide into several package files
 
