@@ -113,6 +113,43 @@ func updateRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 }
 
 
+func resetTable(w http.ResponseWriter, r *http.Request, _ httprouter.Params){
+	mytable.reset()
+	emptydb()
+}
+
+func deleteRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	id, ok := getID(w, ps)
+	fmt.Print("val",id,ok)
+
+	var rec Field
+	var ires int
+	if !ok {
+		rec, ires = mytable.searchByKey(ps.ByName("id"))
+	} else {
+		rec, ires = mytable.searchById(id)
+	}
+
+	fmt.Println(rec,ires)
+	if ires == -1 {
+		if !ok {
+			json.NewEncoder(w).Encode("No record with that key")
+		} else{
+			json.NewEncoder(w).Encode("No record with that id")
+		}
+	} else {
+		json.NewEncoder(w).Encode("Record found")
+
+		mytable.delete(ires)
+
+		if !changeLine(ires, ps.ByName("val")){
+			json.NewEncoder(w).Encode("Error")
+		}
+	}
+
+}
+
 //Add ne record to table
 func addRecord(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	decoder := json.NewDecoder(r.Body)

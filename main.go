@@ -37,7 +37,8 @@ func handleRequests() {
 	router.GET("/v1/records/:id", returnSingleRecord)
 	router.POST("/v1/records", addRecord)
 	router.GET("/v1/update/:id/:val", updateRecord)
-	//router.DELETE("/api/v1/records/:id", deleteRecord)
+	router.GET("/v1/reset", resetTable)
+	router.GET("/v1/delete/:id", deleteRecord)
 	http.ListenAndServe(":8080", router)
 
 }

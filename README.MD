@@ -40,7 +40,7 @@ Value 		| string 	| value for selected key
 - [x] create README
 - [ ] add record remove
 - [ ] add table clear
-- [ ] add update record
+- [x] add update record
 - [ ] make distributed database
 - [ ] secure input validation and filtration
 - [ ] add OOP-like structure 

@@ -58,7 +58,22 @@ func initTable()(Table){
 	}
 	return table
 }
+
 var mytable Table = initTable()
+
+func (table Table) reset(){
+	table = append(table[:0], table[len(table):]...)
+}
+
+func (table Table) delete (ires int) bool{
+	for i, _ := range table{
+		if i == ires{
+			table = append(table[:i], table[i+1:len(table)-1]...)
+			return true
+		}
+	}
+	return true
+}
 
 //Find record in table by its id
 func (table Table) searchById(id int)(Field, int){

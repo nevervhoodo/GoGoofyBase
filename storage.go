@@ -93,3 +93,18 @@ func changeLine(line int, got_val string) bool {
 		return false
 	}
 }
+
+func emptydb(){
+	ioutil.WriteFile(config_dbpath, []byte(""), 0644)
+}
+
+func removeline(ind int){
+	fileContent := ""
+	for i, l := range dblines {
+		if (i != ind){
+			fileContent += l
+			fileContent += "\n"
+		}
+	}
+	ioutil.WriteFile(config_dbpath, []byte(fileContent), 0644)
+}
