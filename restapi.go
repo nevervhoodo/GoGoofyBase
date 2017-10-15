@@ -60,23 +60,56 @@ func returnSingleRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 	id, ok := getID(w, ps)
 	fmt.Print("val",id,ok)
 	if !ok {
-		rec, boolres := mytable.searchByKey(ps.ByName("id"))
-		fmt.Println(rec,boolres)
-		if !boolres {
+		rec, ires := mytable.searchByKey(ps.ByName("id"))
+		fmt.Println(rec,ires)
+		if ires == -1{
 			json.NewEncoder(w).Encode("No record ith that key")
 		} else {
 			json.NewEncoder(w).Encode(rec)
 		}
 	} else {
-		rec, boolres := mytable.searchById(id)
-		fmt.Println(rec,boolres)
-		if !boolres {
+		rec, ires := mytable.searchById(id)
+		fmt.Println(rec,ires)
+		if ires == -1 {
 			json.NewEncoder(w).Encode("No value with that id")
 
 		} else {
 			json.NewEncoder(w).Encode(rec)
 		}
 	}
+}
+
+func updateRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	id, ok := getID(w, ps)
+	fmt.Print("val",id,ok)
+
+	if !ok {
+		rec, ires := mytable.searchByKey(ps.ByName("id"))
+		fmt.Println(rec,ires)
+		if ires == -1 {
+			json.NewEncoder(w).Encode("No record with that key")
+		} else {
+			json.NewEncoder(w).Encode("Record found")
+			if !changeLine(ires, ps.ByName("val")){
+				json.NewEncoder(w).Encode("Error")
+			}
+		}
+	} else {
+		rec, ires := mytable.searchById(id)
+		fmt.Println(rec,ires)
+		if ires == -1 {
+			json.NewEncoder(w).Encode("No value with that id")
+
+		} else {
+			json.NewEncoder(w).Encode("Record found")
+			if !changeLine(ires, ps.ByName("val")){
+				json.NewEncoder(w).Encode("Error")
+			}
+		}
+	}
+
+
 }
 
 
@@ -92,9 +125,9 @@ func addRecord(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	log.Println(t.Key,t.Value,"ok")
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
-	var ok bool
+	var ok int
 	_, ok = mytable.searchByKey(t.Key)
-	if ok {
+	if ok != -1 {
 		json.NewEncoder(w).Encode("Record with that key exists")
 	} else {
 		num := len(mytable)

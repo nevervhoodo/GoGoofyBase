@@ -61,32 +61,32 @@ func initTable()(Table){
 var mytable Table = initTable()
 
 //Find record in table by its id
-func (table Table) searchById(id int)(Field, bool){
+func (table Table) searchById(id int)(Field, int){
 
 	if len(table) == 0 {
-		return Field{0,"",""}, false
+		return Field{0,"",""}, -1
 	}
 	var i int
 	for i = 0; i<len(table); i++{
 		if table[i].ID == id{
-			return table[i], true
+			return table[i], i
 		}
 	}
-	return Field{0,"",""}, false
+	return Field{0,"",""}, -1
 }
 
 //Find record in table by its Key name
-func (table Table) searchByKey(key string)(Field, bool){
+func (table Table) searchByKey(key string)(Field, int){
 	if len(table) == 0 {
-		return Field{0,"",""}, false
+		return Field{0,"",""}, -1
 	}
 	var i int
 	for i = 0; i<len(table); i++{
 		if table[i].Key == key{
-			return table[i], true
+			return table[i], i
 		}
 	}
-	return Field{0,"",""}, false
+	return Field{0,"",""}, -1
 }
 
 

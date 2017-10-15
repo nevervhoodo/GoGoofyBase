@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"io"
@@ -21,7 +22,6 @@ func LinesFromReader(r io.Reader) ([]string, error) {
 	return lines, nil
 }
 
-
 //Special function to read file and return array of strings
 func File2lines(filePath string) ([]string, error) {
 	f, err := os.Open(filePath)
@@ -32,12 +32,25 @@ func File2lines(filePath string) ([]string, error) {
 	return LinesFromReader(f)
 }
 
+//array with the whole file splitted into lines
+var dblines[] string
+
+func Opendb(){
+	var er error
+	dblines, er = File2lines(config_dbpath)
+	if er != nil {
+		fmt.Print("db err")
+	}
+}
+
 //Insert string to file in special place
 func InsertStringToFile(path, str string, index int) error {
-	lines, err := File2lines(path)
+	lines := dblines
+	/*
 	if err != nil {
 		return err
 	}
+	*/
 	var inserted bool = false
 	fileContent := ""
 	for i, line := range lines {
@@ -53,4 +66,30 @@ func InsertStringToFile(path, str string, index int) error {
 	}
 
 	return ioutil.WriteFile(path, []byte(fileContent), 0644)
+}
+
+func changeLine(line int, got_val string) bool {
+	var id int
+	var key, val string
+	_, err := fmt.Sscanf(dblines[line], config_format, &id, &key, &val)
+	if err != nil{
+		return false
+	}
+	if val == got_val{
+		return false
+	}
+	str := fmt.Sprintf(config_format,id, key, got_val)
+	dblines[line] = str
+
+	fileContent := ""
+	for _, l := range dblines {
+		fileContent += l
+		fileContent += "\n"
+	}
+
+	if ioutil.WriteFile(config_dbpath, []byte(fileContent), 0644) == nil{
+		return true
+	} else{
+		return false
+	}
 }

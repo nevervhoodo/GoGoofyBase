@@ -16,6 +16,18 @@ func check(e error) {
 	}
 }
 
+/*
+func signalCatch(){
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func(){
+		for sig := range c {
+			closedb()
+		}
+	}()
+}
+*/
+
 //User reuests handlers
 func handleRequests() {
 
@@ -24,7 +36,7 @@ func handleRequests() {
 	router.GET("/", homePage)
 	router.GET("/v1/records/:id", returnSingleRecord)
 	router.POST("/v1/records", addRecord)
-	//router.PUT("/v1/records/:id", updateRecord)
+	router.GET("/v1/update/:id/:val", updateRecord)
 	//router.DELETE("/api/v1/records/:id", deleteRecord)
 	http.ListenAndServe(":8080", router)
 
@@ -32,5 +44,6 @@ func handleRequests() {
 
 func main() {
 	fmt.Println("Hello my dummy users")
+	Opendb()
 	handleRequests()
 }
