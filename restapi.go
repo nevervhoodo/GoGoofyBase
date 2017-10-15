@@ -79,6 +79,7 @@ func returnSingleRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 	}
 }
 
+//Change record
 func updateRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	id, ok := getID(w, ps)
@@ -112,12 +113,13 @@ func updateRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 
 }
 
-
+//Clear table and database
 func resetTable(w http.ResponseWriter, r *http.Request, _ httprouter.Params){
 	mytable.reset()
 	emptydb()
 }
 
+//Delete one record from database
 func deleteRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	id, ok := getID(w, ps)
@@ -177,9 +179,16 @@ func addRecord(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 
 
-//return HomePage
+//return HomePage. Print README.MD
 func homePage(w http.ResponseWriter, r *http.Request, _ httprouter.Params){
-	fmt.Fprintf(w, "Welcome to the HomePage!")
-	//http.HandleFunc("/", )
-	fmt.Println("Endpoint Hit: homePage")
+	fmt.Fprintf(w, "<h1>Welcome to the HomePage!<h1>")
+	lines, err := File2lines(config_readmepath)
+	if err != nil {
+		fmt.Println("Problem with Readme")
+	} else {
+		for _, line := range lines{
+			fmt.Fprintf(w, "<div style=\"font-size: 14px\"><p>"+line+"<p></div>")
+		}
+		fmt.Println("Endpoint Hit: homePage")
+	}
 }
