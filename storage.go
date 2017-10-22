@@ -45,6 +45,7 @@ func Opendb(){
 
 //Insert string to file in special place
 func InsertStringToFile(path, str string, index int) error {
+	fmt.Printf("%#v \n", dblines)
 	lines := dblines
 	/*
 	if err != nil {
@@ -65,7 +66,10 @@ func InsertStringToFile(path, str string, index int) error {
 		fileContent += str
 	}
 
-	return ioutil.WriteFile(path, []byte(fileContent), 0644)
+	ioutil.WriteFile(path, []byte(fileContent), 0644)
+	var er error
+	dblines, er = File2lines(config_dbpath)
+	return er
 }
 
 func changeLine(line int, got_val string) bool {
@@ -87,15 +91,16 @@ func changeLine(line int, got_val string) bool {
 		fileContent += "\n"
 	}
 
-	if ioutil.WriteFile(config_dbpath, []byte(fileContent), 0644) == nil{
-		return true
-	} else{
+	if ioutil.WriteFile(config_dbpath, []byte(fileContent), 0644) != nil{
 		return false
+	}else{
+		return true
 	}
 }
 
 func emptydb(){
 	ioutil.WriteFile(config_dbpath, []byte(""), 0644)
+	dblines, _ = File2lines(config_dbpath)
 }
 
 func removeline(ind int){
@@ -107,4 +112,5 @@ func removeline(ind int){
 		}
 	}
 	ioutil.WriteFile(config_dbpath, []byte(fileContent), 0644)
+	dblines, _ = File2lines(config_dbpath)
 }

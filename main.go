@@ -39,12 +39,33 @@ func handleRequests() {
 	router.GET("/v1/update/:id/:val", updateRecord)
 	router.GET("/v1/reset", resetTable)
 	router.GET("/v1/delete/:id", deleteRecord)
-	http.ListenAndServe(":8080", router)
+	http.ListenAndServe(":8484", router)
 
 }
+var mytable Table = InitTable()
+var requestChannel chan string
+var global int = 0
 
 func main() {
 	fmt.Println("Hello my dummy users")
 	Opendb()
+	//mytable = InitTable()
+	requestChannel = make(chan string, 10)
+	//a := []int{0,1,2,3,4,5}
+	//fmt.Println(a)
+	//i := 5
+	//a = append(a[:i],a[i+1:len(a)]...)
+	//fmt.Println(a)
+	//go func() {
+	//	for {
+	//		request, ok := <-requestChannel
+	//
+	//		if !ok{
+	//			return
+	//		}
+	//
+	//		fmt.Println("got request: ",request)
+	//	}
+	//}()
 	handleRequests()
 }

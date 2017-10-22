@@ -11,11 +11,10 @@ import (
 
 //Return full table as json response
 func returnTable(w http.ResponseWriter, r *http.Request, _ httprouter.Params){
-
+	requestChannel <- "List"
 	fmt.Println("Endpoint Hit: returnTable")
-
-	// json.NewEncoder(w).Encode(table)
-
+	fmt.Println(global)
+	mytable.Print()
 	var str string
 	if len(r.URL.RawQuery) > 0 {
 		str = r.URL.Query().Get("Key")
@@ -26,15 +25,15 @@ func returnTable(w http.ResponseWriter, r *http.Request, _ httprouter.Params){
 		fmt.Println(str)
 		fmt.Println(json.NewEncoder(w).Encode(mytable))
 	}
-	/*recs, err := read(str)
-	if err != nil {
-		w.WriteHeader(500)
-		return
-	}*/
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	if err := json.NewEncoder(w).Encode(mytable); err != nil {
-		w.WriteHeader(501)
+	if len(mytable) == 0 {
+		fmt.Fprintf(w, "<h1>Empty table</h1>")
+	} else{
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		if err := json.NewEncoder(w).Encode(mytable); err != nil {
+			w.WriteHeader(501)
+		}
 	}
+	requestChannel <- "Table"
 
 }
 
@@ -55,6 +54,9 @@ func getKey(w http.ResponseWriter, ps httprouter.Params) (string, bool){
 
 //Return one record by id or key as json response
 func returnSingleRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+
+	msg := <- requestChannel
+	fmt.Println("MESSAGE: ", msg)
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	id, ok := getID(w, ps)
@@ -83,8 +85,10 @@ func returnSingleRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 func updateRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	id, ok := getID(w, ps)
-	fmt.Print("val",id,ok)
+	fmt.Print("Update val ",id,ok)
 
+	got_val := ps.ByName("val")
+	//search for item. Ires = line with item
 	if !ok {
 		rec, ires := mytable.searchByKey(ps.ByName("id"))
 		fmt.Println(rec,ires)
@@ -92,7 +96,8 @@ func updateRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 			json.NewEncoder(w).Encode("No record with that key")
 		} else {
 			json.NewEncoder(w).Encode("Record found")
-			if !changeLine(ires, ps.ByName("val")){
+			mytable = mytable.updateRecord(ires, got_val)
+			if !changeLine(ires, got_val){
 				json.NewEncoder(w).Encode("Error")
 			}
 		}
@@ -101,10 +106,11 @@ func updateRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 		fmt.Println(rec,ires)
 		if ires == -1 {
 			json.NewEncoder(w).Encode("No value with that id")
-
 		} else {
 			json.NewEncoder(w).Encode("Record found")
-			if !changeLine(ires, ps.ByName("val")){
+			mytable = mytable.updateRecord(ires, got_val)
+			mytable.Print()
+			if !changeLine(ires, got_val){
 				json.NewEncoder(w).Encode("Error")
 			}
 		}
@@ -115,15 +121,16 @@ func updateRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 
 //Clear table and database
 func resetTable(w http.ResponseWriter, r *http.Request, _ httprouter.Params){
-	mytable.reset()
+	mytable = mytable.reset()
 	emptydb()
 }
 
 //Delete one record from database
 func deleteRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+	fmt.Println("dalete")
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	id, ok := getID(w, ps)
-	fmt.Print("val",id,ok)
+	fmt.Println("val",id,ok)
 
 	var rec Field
 	var ires int
@@ -142,18 +149,23 @@ func deleteRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 		}
 	} else {
 		json.NewEncoder(w).Encode("Record found")
-
-		mytable.delete(ires)
-
-		if !changeLine(ires, ps.ByName("val")){
-			json.NewEncoder(w).Encode("Error")
+		fmt.Println("DELETE")
+		mytable.Print()
+		ok, mytable = mytable.delete(ires)
+		if ok {
+			removeline(ires)
 		}
+
+		//if !changeLine(ires, ps.ByName("val")){
+		//	json.NewEncoder(w).Encode("Error")
+		//}
 	}
 
 }
 
 //Add ne record to table
 func addRecord(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	//parse got parametrs into gotField structure
 	decoder := json.NewDecoder(r.Body)
 	var t gotField
 	err := decoder.Decode(&t)
@@ -161,18 +173,18 @@ func addRecord(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		fmt.Println(err)
 	}
 	defer r.Body.Close()
-	log.Println(t.Key,t.Value,"ok")
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	log.Println(t.Key, t.Value,"ok")
 
+	mytable.Print()
 	var ok int
 	_, ok = mytable.searchByKey(t.Key)
 	if ok != -1 {
 		json.NewEncoder(w).Encode("Record with that key exists")
 	} else {
-		num := len(mytable)
-		fstr := fmt.Sprintf(config_format+"\n", num, t.Key, t.Value)
-		fmt.Println(num, fstr)
-		InsertStringToFile(config_dbpath, fstr, num)
+
+		_, mytable = mytable.updateTable(t)
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(201)
 		json.NewEncoder(w).Encode("added")
 	}
@@ -191,4 +203,5 @@ func homePage(w http.ResponseWriter, r *http.Request, _ httprouter.Params){
 		}
 		fmt.Println("Endpoint Hit: homePage")
 	}
+	requestChannel <- "Home"
 }
