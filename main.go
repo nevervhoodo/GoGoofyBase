@@ -59,6 +59,7 @@ var store Storage = addPages(config_dbdir)
 
 var npage int = 0
 func cococo () {
+	fmt.Println("ticker ", npage)
 	var result bool
 	store, result = store.checkPage(npage)
 	fmt.Println("ticker ", npage, result)

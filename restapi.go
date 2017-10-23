@@ -168,7 +168,9 @@ func updateRecordInPage(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 		} else {
 			json.NewEncoder(w).Encode("Record found")
 			mytable2 = mytable2.updateRecord(ires, got_val)
+			store.Print()
 			store = store.updatePage(mytable2.getKeyID(ps.ByName("id")), got_val)
+			store.Print()
 		}
 	} else {
 		rec, ires := mytable2.searchById(id)
@@ -179,7 +181,9 @@ func updateRecordInPage(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 			json.NewEncoder(w).Encode("Record found")
 			mytable2 = mytable2.updateRecord(ires, got_val)
 			mytable2.Print()
+			store.Print()
 			store = store.updatePage(id, got_val)
+			store.Print()
 		}
 	}
 }

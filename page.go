@@ -144,14 +144,17 @@ func (page Page) Page2Table () Table {
 //add line to page
 func (store Storage) InsertStringToPage(fstr string, id int) Storage{
 	for i, page := range store{
+		fmt.Println("InsertPage ", page)
 		page.Lock()
-		defer page.Unlock()
+		fmt.Println("sdadasd")
 		if len(page.content) < config_page_size{
 			page.content = append(page.content, fstr)
 			page.need_to_write = true
 			store[i] = page
+			page.Unlock()
 			return store
 		}
+		page.Unlock()
 	}
 	var lines []string
 	store = append(store, Page {
@@ -177,6 +180,7 @@ func (store Storage) updatePage(id int, val string) Storage {
 				line = str
 				page.need_to_write = true
 				store[i] = page
+				fmt.Print("result", page)
 				return store
 			}
 		}
@@ -222,12 +226,14 @@ func (store Storage) emptyPages() Storage{
 }
 
 func (page Page) writePage () {
+	fmt.Println("write ",page)
 	lines, err := File2lines(page.fileName)
 	if (err != nil){
 		log.Fatal(err)
 	}
 	fileContent := ""
 	for i,line := range lines {
+		fmt.Print(i,line)
 		if i < page.offset {
 			fileContent += line
 			fileContent += "\n"
@@ -247,18 +253,27 @@ func (page Page) writePage () {
 //pull page to file if needed
 func (store Storage) checkPage (npage int) (Storage, bool) {
 	page := store[npage]
+	st_n := npage
+	fmt.Println("m ",npage)
 	if page.pageNum != npage {
-		for _,p := range store {
+		for i,p := range store {
+			fmt.Println("m ", p.pageNum, npage)
 			if p.pageNum == npage {
 				page = p
+				st_n = i
 			}
 		}
 	}
+
 	var result bool
+	fmt.Println("before check", page)
 	page.RLock()
 	if page.need_to_write {
 		result = true
+		fmt.Println("swap")
 		page.writePage()
+		page.need_to_write = false
+		store[st_n] = page
 	} else {
 		result = false
 	}
