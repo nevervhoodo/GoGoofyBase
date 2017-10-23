@@ -11,7 +11,7 @@ import (
 
 //Return full table as json response
 func returnTable(w http.ResponseWriter, r *http.Request, _ httprouter.Params){
-	requestChannel <- "List"
+	//requestChannel <- "List"
 	fmt.Println("Endpoint Hit: returnTable")
 	fmt.Println(global)
 	mytable.Print()
@@ -33,8 +33,21 @@ func returnTable(w http.ResponseWriter, r *http.Request, _ httprouter.Params){
 			w.WriteHeader(501)
 		}
 	}
-	requestChannel <- "Table"
+	//requestChannel <- "Table"
 
+}
+
+func returnAll(w http.ResponseWriter, r *http.Request, _ httprouter.Params){
+	fmt.Println("all")
+	checkcococo()
+	if len(mytable2) == 0 {
+		fmt.Fprintf(w, "<h1>Empty table</h1>")
+	} else{
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		if err := json.NewEncoder(w).Encode(mytable2); err != nil {
+			w.WriteHeader(501)
+		}
+	}
 }
 
 //Special function to get id GET parametr
@@ -55,9 +68,7 @@ func getKey(w http.ResponseWriter, ps httprouter.Params) (string, bool){
 //Return one record by id or key as json response
 func returnSingleRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 
-	msg := <- requestChannel
-	fmt.Println("MESSAGE: ", msg)
-
+	//msg := <- requestChannel
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	id, ok := getID(w, ps)
 	fmt.Print("val",id,ok)
@@ -71,6 +82,31 @@ func returnSingleRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 		}
 	} else {
 		rec, ires := mytable.searchById(id)
+		fmt.Println(rec,ires)
+		if ires == -1 {
+			json.NewEncoder(w).Encode("No value with that id")
+
+		} else {
+			json.NewEncoder(w).Encode(rec)
+		}
+	}
+}
+
+func findRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+	checkcococo()
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	id, ok := getID(w, ps)
+	fmt.Print("val",id,ok)
+	if !ok {
+		rec, ires := mytable2.searchByKey(ps.ByName("id"))
+		fmt.Println(rec,ires)
+		if ires == -1{
+			json.NewEncoder(w).Encode("No record ith that key")
+		} else {
+			json.NewEncoder(w).Encode(rec)
+		}
+	} else {
+		rec, ires := mytable2.searchById(id)
 		fmt.Println(rec,ires)
 		if ires == -1 {
 			json.NewEncoder(w).Encode("No value with that id")
@@ -115,14 +151,49 @@ func updateRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 			}
 		}
 	}
+}
 
+func updateRecordInPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+	checkcococo()
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	id, ok := getID(w, ps)
 
+	got_val := ps.ByName("val")
+	//search for item. Ires = line with item
+	if !ok {
+		rec, ires := mytable2.searchByKey(ps.ByName("id"))
+		fmt.Println(rec,ires)
+		if ires == -1 {
+			json.NewEncoder(w).Encode("No record with that key")
+		} else {
+			json.NewEncoder(w).Encode("Record found")
+			mytable2 = mytable2.updateRecord(ires, got_val)
+			store = store.updatePage(mytable2.getKeyID(ps.ByName("id")), got_val)
+		}
+	} else {
+		rec, ires := mytable2.searchById(id)
+		fmt.Println(rec,ires)
+		if ires == -1 {
+			json.NewEncoder(w).Encode("No value with that id")
+		} else {
+			json.NewEncoder(w).Encode("Record found")
+			mytable2 = mytable2.updateRecord(ires, got_val)
+			mytable2.Print()
+			store = store.updatePage(id, got_val)
+		}
+	}
 }
 
 //Clear table and database
 func resetTable(w http.ResponseWriter, r *http.Request, _ httprouter.Params){
 	mytable = mytable.reset()
 	emptydb()
+}
+
+func reset2Table(w http.ResponseWriter, r *http.Request, _ httprouter.Params){
+	checkcococo()
+	mytable2 = mytable2.reset()
+	store = store.emptyPages()
 }
 
 //Delete one record from database
@@ -163,7 +234,45 @@ func deleteRecord(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
 
 }
 
-//Add ne record to table
+func delete2Record(w http.ResponseWriter, r *http.Request, ps httprouter.Params){
+	checkcococo()
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	id, ok := getID(w, ps)
+
+	//var rec Field
+	var ires int
+	var ID int
+	if !ok {
+		_, ires = mytable2.searchByKey(ps.ByName("id"))
+		ID = mytable2.getKeyID(ps.ByName("id"))
+	} else {
+		_, ires = mytable2.searchById(id)
+		ID = id
+	}
+
+	if ires == -1 {
+		if !ok {
+			json.NewEncoder(w).Encode("No record with that key")
+		} else{
+			json.NewEncoder(w).Encode("No record with that id")
+		}
+	} else {
+		json.NewEncoder(w).Encode("Record found")
+		fmt.Println("DELETE")
+		mytable2.Print()
+		ok, mytable2 = mytable2.delete(ires)
+		if ok {
+			store = store.rmFromPage(ID)
+		}
+
+		//if !changeLine(ires, ps.ByName("val")){
+		//	json.NewEncoder(w).Encode("Error")
+		//}
+	}
+
+}
+
+//Add new record to table
 func addRecord(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	//parse got parametrs into gotField structure
 	decoder := json.NewDecoder(r.Body)
@@ -182,7 +291,33 @@ func addRecord(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		json.NewEncoder(w).Encode("Record with that key exists")
 	} else {
 
-		_, mytable = mytable.updateTable(t)
+		_, mytable = mytable.updateTable(t, false)
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(201)
+		json.NewEncoder(w).Encode("added")
+	}
+}
+
+func addRecord2Page(w http.ResponseWriter, r *http.Request, _ httprouter.Params){
+	checkcococo()
+	decoder := json.NewDecoder(r.Body)
+	var t gotField
+	err := decoder.Decode(&t)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer r.Body.Close()
+	log.Println(t.Key, t.Value,"ok")
+
+	mytable2.Print()
+	var ok int
+	_, ok = mytable2.searchByKey(t.Key)
+	if ok != -1 {
+		json.NewEncoder(w).Encode("Record with that key exists")
+	} else {
+
+		_, mytable2 = mytable2.updateTable(t, true)
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(201)
@@ -203,5 +338,5 @@ func homePage(w http.ResponseWriter, r *http.Request, _ httprouter.Params){
 		}
 		fmt.Println("Endpoint Hit: homePage")
 	}
-	requestChannel <- "Home"
+	//requestChannel <- "Home"
 }

@@ -18,7 +18,6 @@ func LinesFromReader(r io.Reader) ([]string, error) {
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
-
 	return lines, nil
 }
 

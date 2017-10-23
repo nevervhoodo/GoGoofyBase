@@ -57,6 +57,17 @@ func InitTable()(Table){
 	return table
 }
 
+func CollectTable() Table {
+	fulltable := Table {}
+	fmt.Println(store)
+	for _, page := range (store){
+		fmt.Println(page)
+		addFields := page.Page2Table()
+		fmt.Println(addFields)
+		fulltable = append(fulltable, addFields...)
+	}
+	return fulltable
+}
 
 func (table Table) Print() {
 	fmt.Printf("\n###########################################\n")
@@ -119,8 +130,23 @@ func (table Table) searchByKey(key string)(Field, int){
 	return Field{0,"",""}, -1
 }
 
+func (table Table) getKeyID (key string) int {
+	muForTable.RLock()
+	defer muForTable.RUnlock()
+	if len(table) == 0 {
+		return -1
+	}
+	var i int
+	for i = 0; i<len(table); i++{
+		if table[i].Key == key{
+			return table[i].ID
+		}
+	}
+	return -1
+}
+
 //add new record to table. Return ID
-func (table Table) updateTable(rec gotField) (int, Table) {
+func (table Table) updateTable(rec gotField, updatePage bool) (int, Table) {
 	muForTable.Lock()
 	defer muForTable.Unlock()
 	//new id = find free one
@@ -142,8 +168,12 @@ func (table Table) updateTable(rec gotField) (int, Table) {
 	fmt.Printf("%#v \n", table)
 	//update db file
 	fstr := fmt.Sprintf(config_format+"\n", id, rec.Key, rec.Value)
-	fmt.Println(id, fstr)
-	InsertStringToFile(config_dbpath, fstr, id)
+	if !updatePage{
+		fmt.Println(id, fstr)
+		InsertStringToFile(config_dbpath, fstr, id)
+	} else {
+		store = store.InsertStringToPage(fstr, id)
+	}
 	return id, table
 }
 
@@ -153,3 +183,5 @@ func (table Table) updateRecord(line int, val string) Table{
 	table[line].Value = val
 	return table
 }
+
+
